@@ -52,7 +52,7 @@ export default function Expenses() {
             <Skeleton className="h-3 w-16 rounded-full" />
             <Skeleton className="h-7 w-28 rounded-xl" />
           </div>
-          <Skeleton className="h-9 w-36 rounded-2xl" />
+          <Skeleton className="h-9 w-28 rounded-2xl" />
         </div>
         <Skeleton className="h-56 rounded-2xl" />
         <Skeleton className="h-40 rounded-2xl" />
@@ -63,24 +63,15 @@ export default function Expenses() {
 
   return (
     <AppLayout>
-      <div className="space-y-5 pb-32 sm:pb-8" style={{ animation: "expIn 0.3s ease both" }}>
+      <div className="space-y-5 pb-32 sm:pb-24" style={{ animation: "expIn 0.3s ease both" }}>
 
-        {/* ── Header ───────────────────────────────────────────────────── */}
+        {/* ── Header — Add button intentionally absent here ─────────── */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Finance</p>
             <h1 className="text-2xl font-black font-display tracking-tight">Expenses</h1>
           </div>
-
-          {/* Desktop: Add button + Budget + MonthPicker all in header */}
-          <div className="hidden sm:flex items-center gap-2 flex-wrap">
-            <AddExpenseDialog defaultDate={addDialogDate} onDateUsed={() => setAddDialogDate(undefined)} />
-            <BudgetManager budgets={allBudgets} expenses={allExpenses} month={month} />
-            <MonthPicker month={month} onChange={setMonth} />
-          </div>
-
-          {/* Mobile: Budget + MonthPicker in header (Add button lives above bottom nav) */}
-          <div className="flex sm:hidden items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
             <BudgetManager budgets={allBudgets} expenses={allExpenses} month={month} />
             <MonthPicker month={month} onChange={setMonth} />
           </div>
@@ -113,8 +104,6 @@ export default function Expenses() {
         ══════════════════════════════════════════════════════════════ */}
         {activeTab === "transactions" && (
           <div className="space-y-4" style={{ animation: "expIn 0.28s ease both" }}>
-
-            {/* Date selector */}
             <div className="rounded-2xl border border-border/60 bg-card shadow-sm p-4 flex flex-col sm:flex-row sm:items-center gap-3">
               <div className="flex-1">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5">
@@ -129,25 +118,16 @@ export default function Expenses() {
                   <input
                     type="date"
                     value={txDate}
-                    max={format(new Date(), "yyyy-MM-dd")}
                     onChange={(e) => setTxDate(e.target.value)}
                     className="h-9 flex-1 px-3 rounded-xl border border-border/60 bg-background text-sm font-bold focus:outline-none focus:ring-2 focus:ring-ring"
                   />
                   <button
                     onClick={() => setTxDate(format(subDays(new Date(txDate), -1), "yyyy-MM-dd"))}
-                    disabled={txDate >= format(new Date(), "yyyy-MM-dd")}
-                    className={cn(
-                      "h-8 w-8 flex items-center justify-center rounded-xl transition-colors active:scale-95",
-                      txDate >= format(new Date(), "yyyy-MM-dd")
-                        ? "bg-muted/30 text-muted-foreground/40 cursor-not-allowed"
-                        : "bg-muted hover:bg-muted/80"
-                    )}>
+                    className="h-8 w-8 flex items-center justify-center rounded-xl bg-muted hover:bg-muted/80 transition-colors active:scale-95">
                     <ChevronRight className="h-4 w-4" />
                   </button>
                 </div>
               </div>
-
-              {/* Quick-jump pills */}
               <div className="flex gap-1.5">
                 {[0, 1, 2].map((offset) => {
                   const d   = format(subDays(new Date(), offset), "yyyy-MM-dd");
@@ -156,22 +136,15 @@ export default function Expenses() {
                     <button key={d} onClick={() => setTxDate(d)}
                       className={cn(
                         "px-3 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95",
-                        txDate === d
-                          ? "bg-foreground text-background"
-                          : "bg-muted text-muted-foreground hover:bg-muted/80"
-                      )}>
-                      {lbl}
-                    </button>
+                        txDate === d ? "bg-foreground text-background" : "bg-muted text-muted-foreground hover:bg-muted/80"
+                      )}>{lbl}</button>
                   );
                 })}
               </div>
             </div>
 
-            {/* Expense list or empty state — NO calendar here */}
             {txExpenses.length > 0 ? (
-              <div className="rounded-2xl border border-border/60 bg-card shadow-sm overflow-hidden">
-                <ExpenseList expenses={txExpenses} />
-              </div>
+              <ExpenseList expenses={txExpenses} />
             ) : (
               <div className="flex flex-col items-center justify-center gap-3 rounded-3xl border border-dashed border-border/60 bg-card/30 py-16 text-center">
                 <div className="text-4xl">🧾</div>
@@ -217,7 +190,7 @@ export default function Expenses() {
         )}
 
         {/* ══════════════════════════════════════════════════════════════
-            TAB: OVERVIEW — cards + budgets + charts
+            TAB: OVERVIEW
         ══════════════════════════════════════════════════════════════ */}
         {activeTab === "overview" && (
           <div className="space-y-5" style={{ animation: "expIn 0.28s ease both" }}>
@@ -231,14 +204,26 @@ export default function Expenses() {
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════
-          MOBILE BOTTOM NAV + ADD BUTTON — fixed above nav
-          Hidden on sm: and above
+          DESKTOP FAB — fixed bottom-right
+          Only visible on sm: and above
       ══════════════════════════════════════════════════════════════════ */}
-      <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50 flex flex-col"
-        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+      <div
+        className="hidden sm:block fixed bottom-8 right-8 z-50"
+        style={{ animation: "fabIn 0.4s cubic-bezier(0.34,1.56,0.64,1) both", animationDelay: "200ms" }}
+      >
+        <AddExpenseDialog defaultDate={addDialogDate} onDateUsed={() => setAddDialogDate(undefined)} />
+      </div>
 
-        {/* Add Expense button — floats just above the nav bar */}
-        <div className="px-4 pb-2 bg-card/95 backdrop-blur-md">
+      {/* ══════════════════════════════════════════════════════════════════
+          MOBILE: Add button above bottom nav + bottom nav
+          Only visible below sm:
+      ══════════════════════════════════════════════════════════════════ */}
+      <div
+        className="sm:hidden fixed bottom-0 left-0 right-0 z-50 flex flex-col"
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
+        {/* Add button sits flush above nav with same glass background */}
+        <div className="px-4 pt-2 pb-2 bg-card/95 backdrop-blur-md">
           <AddExpenseDialog defaultDate={addDialogDate} onDateUsed={() => setAddDialogDate(undefined)} />
         </div>
 
@@ -250,7 +235,7 @@ export default function Expenses() {
               <button
                 key={id}
                 onClick={() => switchTab(id)}
-                className="flex-1 flex flex-col items-center justify-center pt-4 pb-7 gap-1 relative transition-all duration-200 active:scale-95"
+                className="flex-1 flex flex-col items-center justify-center pt-3 pb-2 gap-1 relative transition-all duration-200 active:scale-95"
               >
                 {active && (
                   <span
@@ -285,6 +270,10 @@ export default function Expenses() {
         @keyframes pillIn {
           from { transform: translateX(-50%) scaleX(0); opacity: 0; }
           to   { transform: translateX(-50%) scaleX(1); opacity: 1; }
+        }
+        @keyframes fabIn {
+          from { opacity: 0; transform: scale(0.8) translateY(8px); }
+          to   { opacity: 1; transform: scale(1) translateY(0); }
         }
       `}</style>
     </AppLayout>
