@@ -36,6 +36,8 @@ npm i
 npm run dev
 ```
 
+listen the budget should have this feature like i can set budget according to my preferance. for example i get my salary at  10 in every month. so i set my budget till next 10. so anybody who gets their salary can set their budget according to their pay day so that this function work this way. listen the budgets track from payday-to-payday and  calendar month. a user default have calender month but he can choose payday if he wants
+
 **Edit a file directly in GitHub**
 
 - Navigate to the desired file(s).

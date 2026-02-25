@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { format } from "date-fns";
+import { format, subDays } from "date-fns";
 import { AppLayout } from "@/components/AppLayout";
 import { MonthPicker } from "@/components/expenses/MonthPicker";
 import { AddExpenseDialog } from "@/components/expenses/AddExpenseDialog";
@@ -12,79 +12,274 @@ import { MedievalQuote } from "@/components/expenses/MedievalQuote";
 import { DayDetailView } from "@/components/expenses/DayDetailView";
 import { useExpenses, usePrevMonthExpenses, useBudgets } from "@/hooks/useExpenses";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Input } from "@/components/ui/input";
+import { List, CalendarDays, LayoutGrid, ChevronLeft, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+type Tab = "transactions" | "calendar" | "overview";
+
+const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
+  { id: "transactions", label: "Transactions", icon: List        },
+  { id: "calendar",     label: "Calendar",     icon: CalendarDays },
+  { id: "overview",     label: "Overview",     icon: LayoutGrid  },
+];
 
 export default function Expenses() {
-  const [month, setMonth] = useState(new Date());
+  const [month, setMonth]                 = useState(new Date());
+  const [activeTab, setActiveTab]         = useState<Tab>("transactions");
   const [addDialogDate, setAddDialogDate] = useState<string | undefined>();
-  const [selectedDay, setSelectedDay] = useState<string | null>(null);
-  const [listDate, setListDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [selectedDay, setSelectedDay]     = useState<string | null>(null);
+  const [txDate, setTxDate]               = useState(format(new Date(), "yyyy-MM-dd"));
+
   const { data: expenses, isLoading } = useExpenses(month);
-  const { data: prevExpenses } = usePrevMonthExpenses(month);
-  const { data: budgets } = useBudgets(month);
+  const { data: prevExpenses }        = usePrevMonthExpenses(month);
+  const { data: budgets }             = useBudgets(month);
 
-  const handleDayClick = (date: string) => {
-    setSelectedDay(date);
-  };
+  const allExpenses = expenses     || [];
+  const allPrev     = prevExpenses || [];
+  const allBudgets  = budgets      || [];
+  const txExpenses  = allExpenses.filter((e) => e.date === txDate);
 
-  const handleAddFromDay = (date: string) => {
-    setAddDialogDate(date);
-  };
+  const handleDayClick   = (date: string) => setSelectedDay(date);
+  const handleAddFromDay = (date: string) => { setAddDialogDate(date); setSelectedDay(null); };
+  const switchTab = (tab: Tab) => { setActiveTab(tab); setSelectedDay(null); };
 
-  const filteredExpenses = (expenses || []).filter((e) => e.date === listDate);
+  /* ── Skeleton ──────────────────────────────────────────────────────── */
+  if (isLoading) return (
+    <AppLayout>
+      <div className="space-y-5 pb-28 sm:pb-8">
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <Skeleton className="h-3 w-16 rounded-full" />
+            <Skeleton className="h-7 w-28 rounded-xl" />
+          </div>
+          <Skeleton className="h-9 w-36 rounded-2xl" />
+        </div>
+        <Skeleton className="h-56 rounded-2xl" />
+        <Skeleton className="h-40 rounded-2xl" />
+        <Skeleton className="h-24 rounded-2xl" />
+      </div>
+    </AppLayout>
+  );
 
   return (
     <AppLayout>
-      <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="space-y-5 pb-32 sm:pb-8" style={{ animation: "expIn 0.3s ease both" }}>
+
+        {/* ── Header ───────────────────────────────────────────────────── */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold font-display">Expenses</h1>
-            <p className="text-muted-foreground">Track and manage your spending</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Finance</p>
+            <h1 className="text-2xl font-black font-display tracking-tight">Expenses</h1>
           </div>
-          <div className="flex items-center gap-3">
-            <BudgetManager budgets={budgets || []} expenses={expenses || []} month={month} />
+
+          {/* Desktop: Add button + Budget + MonthPicker all in header */}
+          <div className="hidden sm:flex items-center gap-2 flex-wrap">
+            <AddExpenseDialog defaultDate={addDialogDate} onDateUsed={() => setAddDialogDate(undefined)} />
+            <BudgetManager budgets={allBudgets} expenses={allExpenses} month={month} />
+            <MonthPicker month={month} onChange={setMonth} />
+          </div>
+
+          {/* Mobile: Budget + MonthPicker in header (Add button lives above bottom nav) */}
+          <div className="flex sm:hidden items-center gap-2 flex-wrap">
+            <BudgetManager budgets={allBudgets} expenses={allExpenses} month={month} />
             <MonthPicker month={month} onChange={setMonth} />
           </div>
         </div>
 
-        <MedievalQuote />
+        {/* ── Quote ────────────────────────────────────────────────────── */}
+        <div style={{ animation: "expIn 0.35s ease both", animationDelay: "30ms" }}>
+          <MedievalQuote />
+        </div>
 
-        {isLoading ? (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-[100px] rounded-xl" />)}
-            </div>
-            <Skeleton className="h-[220px] rounded-xl" />
-          </div>
-        ) : selectedDay ? (
-          <DayDetailView
-            date={selectedDay}
-            expenses={expenses || []}
-            onBack={() => setSelectedDay(null)}
-            onAddExpense={handleAddFromDay}
-          />
-        ) : (
-          <>
-            <ExpenseSummaryCards expenses={expenses || []} prevExpenses={prevExpenses || []} budgets={budgets || []} />
-            <h2 className="text-lg font-semibold font-display">Transactions</h2>
-            <ExpenseList expenses={filteredExpenses} />
-            <MonthCalendarView expenses={expenses || []} month={month} onDayClick={handleDayClick} />
-            <ExpenseCharts expenses={expenses || []} month={month} />
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                
-                <Input
-                  type="date"
-                  value={listDate}
-                  onChange={(e) => setListDate(e.target.value)}
-                  className="w-auto h-8 text-sm"
-                />
+        {/* ── Desktop tab bar ───────────────────────────────────────────── */}
+        <div className="hidden sm:flex gap-1 rounded-2xl bg-muted/60 border border-border/40 p-1"
+          style={{ animation: "expIn 0.35s ease both", animationDelay: "50ms" }}>
+          {TABS.map(({ id, label, icon: Icon }) => (
+            <button key={id} onClick={() => switchTab(id)}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-200",
+                activeTab === id
+                  ? "bg-card text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              )}>
+              <Icon className="h-3.5 w-3.5 shrink-0" />
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* ══════════════════════════════════════════════════════════════
+            TAB: TRANSACTIONS
+        ══════════════════════════════════════════════════════════════ */}
+        {activeTab === "transactions" && (
+          <div className="space-y-4" style={{ animation: "expIn 0.28s ease both" }}>
+
+            {/* Date selector */}
+            <div className="rounded-2xl border border-border/60 bg-card shadow-sm p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="flex-1">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5">
+                  Showing transactions for
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setTxDate(format(subDays(new Date(txDate), 1), "yyyy-MM-dd"))}
+                    className="h-8 w-8 flex items-center justify-center rounded-xl bg-muted hover:bg-muted/80 transition-colors active:scale-95">
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  <input
+                    type="date"
+                    value={txDate}
+                    onChange={(e) => setTxDate(e.target.value)}
+                    className="h-9 flex-1 px-3 rounded-xl border border-border/60 bg-background text-sm font-bold focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                  <button
+                    onClick={() => setTxDate(format(subDays(new Date(txDate), -1), "yyyy-MM-dd"))}
+                    className="h-8 w-8 flex items-center justify-center rounded-xl bg-muted hover:bg-muted/80 transition-colors active:scale-95">
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Quick-jump pills */}
+              <div className="flex gap-1.5">
+                {[0, 1, 2].map((offset) => {
+                  const d   = format(subDays(new Date(), offset), "yyyy-MM-dd");
+                  const lbl = offset === 0 ? "Today" : offset === 1 ? "Yesterday" : format(subDays(new Date(), offset), "EEE");
+                  return (
+                    <button key={d} onClick={() => setTxDate(d)}
+                      className={cn(
+                        "px-3 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95",
+                        txDate === d
+                          ? "bg-foreground text-background"
+                          : "bg-muted text-muted-foreground hover:bg-muted/80"
+                      )}>
+                      {lbl}
+                    </button>
+                  );
+                })}
               </div>
             </div>
-          </>
+
+            {/* Expense list or empty state — NO calendar here */}
+            {txExpenses.length > 0 ? (
+              <div className="rounded-2xl border border-border/60 bg-card shadow-sm overflow-hidden">
+                <ExpenseList expenses={txExpenses} />
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center gap-3 rounded-3xl border border-dashed border-border/60 bg-card/30 py-16 text-center">
+                <div className="text-4xl">🧾</div>
+                <div className="space-y-1">
+                  <p className="text-sm font-bold tracking-tight">No transactions</p>
+                  <p className="text-xs text-muted-foreground">
+                    Nothing logged for {format(new Date(txDate + "T12:00:00"), "EEEE, MMM d")}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ══════════════════════════════════════════════════════════════
+            TAB: CALENDAR
+        ══════════════════════════════════════════════════════════════ */}
+        {activeTab === "calendar" && !selectedDay && (
+          <div style={{ animation: "expIn 0.28s ease both" }}>
+            <MonthCalendarView expenses={allExpenses} month={month} onDayClick={handleDayClick} />
+          </div>
+        )}
+
+        {activeTab === "calendar" && selectedDay && (
+          <div style={{ animation: "expIn 0.28s ease both" }}>
+            <div className="flex items-center gap-3 mb-4">
+              <button onClick={() => setSelectedDay(null)}
+                className="flex items-center gap-1.5 text-sm font-bold text-muted-foreground hover:text-foreground transition-colors rounded-xl px-3 py-1.5 bg-muted hover:bg-muted/80">
+                <ChevronLeft className="h-4 w-4" />
+                Calendar
+              </button>
+              <p className="text-sm font-bold text-foreground">
+                {format(new Date(selectedDay + "T12:00:00"), "EEEE, MMMM d")}
+              </p>
+            </div>
+            <DayDetailView
+              date={selectedDay}
+              expenses={allExpenses}
+              onBack={() => setSelectedDay(null)}
+              onAddExpense={handleAddFromDay}
+            />
+          </div>
+        )}
+
+        {/* ══════════════════════════════════════════════════════════════
+            TAB: OVERVIEW — cards + budgets + charts
+        ══════════════════════════════════════════════════════════════ */}
+        {activeTab === "overview" && (
+          <div className="space-y-5" style={{ animation: "expIn 0.28s ease both" }}>
+            <ExpenseSummaryCards expenses={allExpenses} prevExpenses={allPrev} budgets={allBudgets} />
+            {allBudgets.filter((b) => b.category !== "Overall").length > 0 && (
+              <BudgetManager budgets={allBudgets} expenses={allExpenses} month={month} />
+            )}
+            <ExpenseCharts expenses={allExpenses} month={month} />
+          </div>
         )}
       </div>
-      <AddExpenseDialog defaultDate={addDialogDate} onDateUsed={() => setAddDialogDate(undefined)} />
+
+      {/* ══════════════════════════════════════════════════════════════════
+          MOBILE BOTTOM NAV + ADD BUTTON — fixed above nav
+          Hidden on sm: and above
+      ══════════════════════════════════════════════════════════════════ */}
+      <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50 flex flex-col"
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+
+        {/* Add Expense button — floats just above the nav bar */}
+        <div className="px-4 pb-2 bg-card/95 backdrop-blur-md">
+          <AddExpenseDialog defaultDate={addDialogDate} onDateUsed={() => setAddDialogDate(undefined)} />
+        </div>
+
+        {/* Bottom nav */}
+        <nav className="flex items-stretch bg-card/95 backdrop-blur-md border-t border-border/60">
+          {TABS.map(({ id, label, icon: Icon }) => {
+            const active = activeTab === id;
+            return (
+              <button
+                key={id}
+                onClick={() => switchTab(id)}
+                className="flex-1 flex flex-col items-center justify-center pt-3 pb-2 gap-1 relative transition-all duration-200 active:scale-95"
+              >
+                {active && (
+                  <span
+                    className="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-[3px] rounded-full bg-foreground"
+                    style={{ animation: "pillIn 0.2s cubic-bezier(0.34,1.56,0.64,1) both" }}
+                  />
+                )}
+                <Icon
+                  className={cn(
+                    "h-[22px] w-[22px] transition-all duration-200",
+                    active ? "text-foreground" : "text-muted-foreground"
+                  )}
+                  strokeWidth={active ? 2.5 : 1.75}
+                />
+                <span className={cn(
+                  "text-[10px] font-bold uppercase tracking-wider leading-none transition-colors duration-200",
+                  active ? "text-foreground" : "text-muted-foreground"
+                )}>
+                  {label}
+                </span>
+              </button>
+            );
+          })}
+        </nav>
+      </div>
+
+      <style>{`
+        @keyframes expIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes pillIn {
+          from { transform: translateX(-50%) scaleX(0); opacity: 0; }
+          to   { transform: translateX(-50%) scaleX(1); opacity: 1; }
+        }
+      `}</style>
     </AppLayout>
   );
 }
