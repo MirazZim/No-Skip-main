@@ -243,7 +243,7 @@ export default function Expenses() {
               <button
                 key={id}
                 onClick={() => switchTab(id)}
-                className="flex-1 flex flex-col items-center justify-center pt-3 pb-2 gap-1 relative transition-all duration-200 active:scale-95"
+                className="flex-1 flex flex-col items-center justify-center pt-4 pb-7 gap-1 relative transition-all duration-200 active:scale-95"
               >
                 {active && (
                   <span
