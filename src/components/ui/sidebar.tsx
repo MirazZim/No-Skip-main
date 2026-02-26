@@ -229,7 +229,17 @@ const SidebarTrigger = React.forwardRef<React.ElementRef<typeof Button>, React.C
     return (
       <>
         <style>{`
-          @keyframes nuclearPulse {
+          /*
+           * DARK MODE — glows ADD light outward (radiates into the dark bg)
+           * LIGHT MODE — glows would vanish on white, so instead we:
+           *   1. Use full-opacity saturated primary color shadows
+           *   2. Add a deep colored drop shadow BELOW (like a real light source casting color)
+           *   3. Use inset shadow to make the button itself look lit from within
+           *   4. Add a subtle dark-tinted backdrop so the halo has something to contrast against
+           */
+
+          /* ── Shared keyframes ── */
+          @keyframes darkPulse {
             0%, 100% {
               box-shadow:
                 0 0 6px   3px  rgba(var(--primary-rgb), 1),
@@ -251,6 +261,35 @@ const SidebarTrigger = React.forwardRef<React.ElementRef<typeof Button>, React.C
                 inset 0 0 28px 8px rgba(var(--primary-rgb), 0.9);
             }
           }
+
+          /*
+           * Light mode pulse:
+           * - Tight crisp colored ring (full opacity = visible on white)
+           * - Colored drop shadow BELOW the button (like sun casting a colored shadow)
+           * - Inset glow so inside looks energised
+           * - NO wide atmospheric bloom (invisible on white anyway — skip it)
+           */
+          @keyframes lightPulse {
+            0%, 100% {
+              box-shadow:
+                0 0 0    2px  rgba(var(--primary-rgb), 1),
+                0 0 8px  4px  rgba(var(--primary-rgb), 0.9),
+                0 0 20px 6px  rgba(var(--primary-rgb), 0.65),
+                0 6px 24px 4px rgba(var(--primary-rgb), 0.5),
+                0 10px 40px 8px rgba(var(--primary-rgb), 0.25),
+                inset 0 0 12px 3px rgba(var(--primary-rgb), 0.35);
+            }
+            50% {
+              box-shadow:
+                0 0 0    2px  rgba(var(--primary-rgb), 1),
+                0 0 12px 6px  rgba(var(--primary-rgb), 1),
+                0 0 28px 8px  rgba(var(--primary-rgb), 0.8),
+                0 8px 32px 8px rgba(var(--primary-rgb), 0.75),
+                0 14px 55px 12px rgba(var(--primary-rgb), 0.45),
+                inset 0 0 20px 6px rgba(var(--primary-rgb), 0.55);
+            }
+          }
+
           @keyframes iconNuclear {
             0%, 100% {
               filter:
@@ -286,10 +325,6 @@ const SidebarTrigger = React.forwardRef<React.ElementRef<typeof Button>, React.C
             0%, 100% { opacity: 0.12; transform: scale(1); }
             50%       { opacity: 0.35; transform: scale(1.8); }
           }
-          @keyframes borderPulse {
-            0%, 100% { opacity: 0.85; }
-            50%       { opacity: 1; }
-          }
           @keyframes sidebarHintFadeIn {
             from { opacity: 0; transform: translateX(-8px); }
             to   { opacity: 1; transform: translateX(0); }
@@ -299,28 +334,61 @@ const SidebarTrigger = React.forwardRef<React.ElementRef<typeof Button>, React.C
             50%       { transform: scale(2.2); opacity: 0; }
           }
 
-          .sidebar-trigger-wrap {
-            position: relative;
-            display: inline-flex;
-            align-items: center;
-            /* Extra padding so outer halos aren't cut off by parent overflow:hidden */
-            padding: 20px;
-            margin: -20px;
-          }
-
+          /* ── Base button ── */
           .sidebar-trigger-btn {
-            background: rgba(var(--primary-rgb), 0.3) !important;
             border: 2px solid rgba(var(--primary-rgb), 1) !important;
             border-radius: 0.75rem !important;
-            animation: nuclearPulse 1.6s ease-in-out infinite !important;
             transition: background 0.2s ease !important;
             position: relative !important;
           }
-          .sidebar-trigger-btn:hover {
+
+          /* ── DARK MODE ── */
+          .dark .sidebar-trigger-btn {
+            background: rgba(var(--primary-rgb), 0.3) !important;
+            animation: darkPulse 1.6s ease-in-out infinite !important;
+          }
+          .dark .sidebar-trigger-btn:hover {
             background: rgba(var(--primary-rgb), 0.45) !important;
           }
+          /* Dark halos */
+          .dark .stb-halo1 { animation: halo1 1.6s ease-in-out infinite; }
+          .dark .stb-halo2 { animation: halo2 1.6s ease-in-out infinite; }
+          .dark .stb-halo3 { animation: halo3 1.6s ease-in-out infinite; }
 
-          /* Inner radial core */
+          /* ── LIGHT MODE ── */
+          :not(.dark) .sidebar-trigger-btn {
+            /*
+             * Solid primary-tinted background so button is never transparent on white.
+             * Uses primary at 15% so you see the color clearly without being garish.
+             */
+            background: rgba(var(--primary-rgb), 0.12) !important;
+            animation: lightPulse 1.6s ease-in-out infinite !important;
+          }
+          :not(.dark) .sidebar-trigger-btn:hover {
+            background: rgba(var(--primary-rgb), 0.22) !important;
+          }
+          /*
+           * Light mode backdrop — a soft primary-tinted circle behind the button
+           * gives the glow something to contrast against (like a spotlight on a stage)
+           */
+          :not(.dark) .stb-halo1 {
+            background: radial-gradient(circle at 50% 50%,
+              rgba(var(--primary-rgb), 0.18) 0%,
+              rgba(var(--primary-rgb), 0.06) 50%,
+              transparent 70%) !important;
+            animation: halo1 1.6s ease-in-out infinite;
+          }
+          :not(.dark) .stb-halo2 {
+            background: radial-gradient(circle at 50% 50%,
+              rgba(var(--primary-rgb), 0.1)  0%,
+              rgba(var(--primary-rgb), 0.03) 50%,
+              transparent 70%) !important;
+            animation: halo2 1.6s ease-in-out infinite;
+          }
+          /* No halo3 in light mode — too faint to matter */
+          :not(.dark) .stb-halo3 { display: none; }
+
+          /* ── Shared elements ── */
           .stb-core {
             position: absolute;
             inset: -4px;
@@ -332,54 +400,52 @@ const SidebarTrigger = React.forwardRef<React.ElementRef<typeof Button>, React.C
               rgba(var(--primary-rgb), 0.3)  40%,
               transparent 70%);
           }
-          /* Halo ring 1 */
           .stb-halo1 {
             position: absolute;
             inset: -16px;
             border-radius: 1.5rem;
             pointer-events: none;
-            animation: halo1 1.6s ease-in-out infinite;
             background: radial-gradient(circle at 50% 50%,
               rgba(var(--primary-rgb), 0.5)  0%,
               rgba(var(--primary-rgb), 0.15) 50%,
               transparent 70%);
           }
-          /* Halo ring 2 */
           .stb-halo2 {
             position: absolute;
             inset: -36px;
             border-radius: 2.5rem;
             pointer-events: none;
-            animation: halo2 1.6s ease-in-out infinite;
             background: radial-gradient(circle at 50% 50%,
               rgba(var(--primary-rgb), 0.35) 0%,
               rgba(var(--primary-rgb), 0.08) 50%,
               transparent 70%);
           }
-          /* Halo ring 3 — massive outer atmosphere */
           .stb-halo3 {
             position: absolute;
             inset: -60px;
             border-radius: 4rem;
             pointer-events: none;
-            animation: halo3 1.6s ease-in-out infinite;
             background: radial-gradient(circle at 50% 50%,
               rgba(var(--primary-rgb), 0.25) 0%,
               rgba(var(--primary-rgb), 0.06) 50%,
               transparent 70%);
           }
-
           .sidebar-trigger-icon {
             animation: iconNuclear 1.6s ease-in-out infinite;
-            color: white;
+            color: hsl(var(--primary));
             position: relative;
             z-index: 10;
+          }
+          /* In light mode make icon fully white so it reads as pure light source on the coloured bg */
+          :not(.dark) .sidebar-trigger-icon {
+            color: hsl(var(--primary));
+            filter: none !important;
+            animation: iconNuclear 1.6s ease-in-out infinite !important;
           }
         `}</style>
 
         <div className="relative inline-flex items-center">
-          <div className="sidebar-trigger-wrap">
-            {/* Halos outside button so they never get clipped */}
+          <div className="relative inline-flex items-center justify-center" style={{ padding: 20, margin: -20 }}>
             <span aria-hidden className="stb-halo3" />
             <span aria-hidden className="stb-halo2" />
             <span aria-hidden className="stb-halo1" />
@@ -407,8 +473,12 @@ const SidebarTrigger = React.forwardRef<React.ElementRef<typeof Button>, React.C
             >
               <div className="w-0 h-0 border-y-[5px] border-y-transparent border-r-[6px] border-r-white/10" />
               <div
-                className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 backdrop-blur-md border border-white/10"
-                style={{ boxShadow: "0 0 24px rgba(var(--primary-rgb), 0.3)" }}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-full backdrop-blur-md border"
+                style={{
+                  background: "rgba(var(--primary-rgb), 0.08)",
+                  borderColor: "rgba(var(--primary-rgb), 0.25)",
+                  boxShadow: "0 0 24px rgba(var(--primary-rgb), 0.3)",
+                }}
               >
                 <span className="relative flex h-1.5 w-1.5 shrink-0">
                   <span
@@ -419,7 +489,7 @@ const SidebarTrigger = React.forwardRef<React.ElementRef<typeof Button>, React.C
                 </span>
                 <span
                   className="text-[11px] font-medium tracking-wide"
-                  style={{ color: "hsl(var(--primary) / 0.9)" }}
+                  style={{ color: "hsl(var(--primary))" }}
                 >
                   Tap to open menu
                 </span>
