@@ -203,7 +203,6 @@ const Sidebar = React.forwardRef<
 Sidebar.displayName = "Sidebar";
 
 // ─── Sidebar Trigger ────────────────────────────────────────────────────────
-
 const SidebarTrigger = React.forwardRef<React.ElementRef<typeof Button>, React.ComponentProps<typeof Button>>(
   ({ className, onClick, ...props }, ref) => {
     const { toggleSidebar } = useSidebar();
@@ -229,16 +228,7 @@ const SidebarTrigger = React.forwardRef<React.ElementRef<typeof Button>, React.C
     return (
       <>
         <style>{`
-          /*
-           * DARK MODE — glows ADD light outward (radiates into the dark bg)
-           * LIGHT MODE — glows would vanish on white, so instead we:
-           *   1. Use full-opacity saturated primary color shadows
-           *   2. Add a deep colored drop shadow BELOW (like a real light source casting color)
-           *   3. Use inset shadow to make the button itself look lit from within
-           *   4. Add a subtle dark-tinted backdrop so the halo has something to contrast against
-           */
-
-          /* ── Shared keyframes ── */
+          /* ── DARK MODE — nuclear outward bloom ── */
           @keyframes darkPulse {
             0%, 100% {
               box-shadow:
@@ -263,30 +253,34 @@ const SidebarTrigger = React.forwardRef<React.ElementRef<typeof Button>, React.C
           }
 
           /*
-           * Light mode pulse:
-           * - Tight crisp colored ring (full opacity = visible on white)
-           * - Colored drop shadow BELOW the button (like sun casting a colored shadow)
-           * - Inset glow so inside looks energised
-           * - NO wide atmospheric bloom (invisible on white anyway — skip it)
+           * ── LIGHT MODE — colored shadow casting downward + tight ring + strong inset ──
+           * Key: we TRIPLE the shadow spread values vs before so they're impossible to miss
+           * even against white. The downward cast shadows are the hero here.
            */
           @keyframes lightPulse {
             0%, 100% {
               box-shadow:
-                0 0 0    2px  rgba(var(--primary-rgb), 1),
-                0 0 8px  4px  rgba(var(--primary-rgb), 0.9),
-                0 0 20px 6px  rgba(var(--primary-rgb), 0.65),
-                0 6px 24px 4px rgba(var(--primary-rgb), 0.5),
-                0 10px 40px 8px rgba(var(--primary-rgb), 0.25),
-                inset 0 0 12px 3px rgba(var(--primary-rgb), 0.35);
+                /* crisp outer ring — always visible */
+                0 0 0    3px  rgba(var(--primary-rgb), 1),
+                /* tight colored halo */
+                0 0 12px 6px  rgba(var(--primary-rgb), 0.95),
+                0 0 28px 10px rgba(var(--primary-rgb), 0.75),
+                /* downward cast colored shadow — the magic for light mode */
+                0 8px  28px 6px  rgba(var(--primary-rgb), 0.7),
+                0 16px 50px 12px rgba(var(--primary-rgb), 0.5),
+                0 24px 80px 20px rgba(var(--primary-rgb), 0.3),
+                /* inset — button interior glows */
+                inset 0 0 16px 4px rgba(var(--primary-rgb), 0.5);
             }
             50% {
               box-shadow:
-                0 0 0    2px  rgba(var(--primary-rgb), 1),
-                0 0 12px 6px  rgba(var(--primary-rgb), 1),
-                0 0 28px 8px  rgba(var(--primary-rgb), 0.8),
-                0 8px 32px 8px rgba(var(--primary-rgb), 0.75),
-                0 14px 55px 12px rgba(var(--primary-rgb), 0.45),
-                inset 0 0 20px 6px rgba(var(--primary-rgb), 0.55);
+                0 0 0    3px  rgba(var(--primary-rgb), 1),
+                0 0 18px 8px  rgba(var(--primary-rgb), 1),
+                0 0 40px 14px rgba(var(--primary-rgb), 0.9),
+                0 10px 40px 10px rgba(var(--primary-rgb), 0.9),
+                0 20px 70px 18px rgba(var(--primary-rgb), 0.65),
+                0 32px 110px 28px rgba(var(--primary-rgb), 0.4),
+                inset 0 0 28px 8px rgba(var(--primary-rgb), 0.75);
             }
           }
 
@@ -313,17 +307,26 @@ const SidebarTrigger = React.forwardRef<React.ElementRef<typeof Button>, React.C
             0%, 100% { opacity: 0.8; transform: scale(1); }
             50%       { opacity: 1;   transform: scale(1.3); }
           }
-          @keyframes halo1 {
+          @keyframes halo1Dark {
             0%, 100% { opacity: 0.6; transform: scale(1); }
             50%       { opacity: 1;   transform: scale(1.25); }
           }
-          @keyframes halo2 {
+          @keyframes halo2Dark {
             0%, 100% { opacity: 0.3; transform: scale(1); }
             50%       { opacity: 0.7; transform: scale(1.5); }
           }
-          @keyframes halo3 {
+          @keyframes halo3Dark {
             0%, 100% { opacity: 0.12; transform: scale(1); }
             50%       { opacity: 0.35; transform: scale(1.8); }
+          }
+          /* Light mode halos — stronger opacity, tighter radii so color is denser */
+          @keyframes halo1Light {
+            0%, 100% { opacity: 0.8; transform: scale(1); }
+            50%       { opacity: 1;   transform: scale(1.2); }
+          }
+          @keyframes halo2Light {
+            0%, 100% { opacity: 0.5; transform: scale(1); }
+            50%       { opacity: 0.85; transform: scale(1.35); }
           }
           @keyframes sidebarHintFadeIn {
             from { opacity: 0; transform: translateX(-8px); }
@@ -334,7 +337,6 @@ const SidebarTrigger = React.forwardRef<React.ElementRef<typeof Button>, React.C
             50%       { transform: scale(2.2); opacity: 0; }
           }
 
-          /* ── Base button ── */
           .sidebar-trigger-btn {
             border: 2px solid rgba(var(--primary-rgb), 1) !important;
             border-radius: 0.75rem !important;
@@ -342,7 +344,7 @@ const SidebarTrigger = React.forwardRef<React.ElementRef<typeof Button>, React.C
             position: relative !important;
           }
 
-          /* ── DARK MODE ── */
+          /* DARK */
           .dark .sidebar-trigger-btn {
             background: rgba(var(--primary-rgb), 0.3) !important;
             animation: darkPulse 1.6s ease-in-out infinite !important;
@@ -350,45 +352,35 @@ const SidebarTrigger = React.forwardRef<React.ElementRef<typeof Button>, React.C
           .dark .sidebar-trigger-btn:hover {
             background: rgba(var(--primary-rgb), 0.45) !important;
           }
-          /* Dark halos */
-          .dark .stb-halo1 { animation: halo1 1.6s ease-in-out infinite; }
-          .dark .stb-halo2 { animation: halo2 1.6s ease-in-out infinite; }
-          .dark .stb-halo3 { animation: halo3 1.6s ease-in-out infinite; }
+          .dark .stb-halo1 { animation: halo1Dark 1.6s ease-in-out infinite; }
+          .dark .stb-halo2 { animation: halo2Dark 1.6s ease-in-out infinite; }
+          .dark .stb-halo3 { animation: halo3Dark 1.6s ease-in-out infinite; }
 
-          /* ── LIGHT MODE ── */
+          /* LIGHT */
           :not(.dark) .sidebar-trigger-btn {
-            /*
-             * Solid primary-tinted background so button is never transparent on white.
-             * Uses primary at 15% so you see the color clearly without being garish.
-             */
-            background: rgba(var(--primary-rgb), 0.12) !important;
+            background: rgba(var(--primary-rgb), 0.14) !important;
             animation: lightPulse 1.6s ease-in-out infinite !important;
           }
           :not(.dark) .sidebar-trigger-btn:hover {
-            background: rgba(var(--primary-rgb), 0.22) !important;
+            background: rgba(var(--primary-rgb), 0.24) !important;
           }
-          /*
-           * Light mode backdrop — a soft primary-tinted circle behind the button
-           * gives the glow something to contrast against (like a spotlight on a stage)
-           */
           :not(.dark) .stb-halo1 {
-            background: radial-gradient(circle at 50% 50%,
-              rgba(var(--primary-rgb), 0.18) 0%,
-              rgba(var(--primary-rgb), 0.06) 50%,
+            background: radial-gradient(circle at 50% 60%,
+              rgba(var(--primary-rgb), 0.28) 0%,
+              rgba(var(--primary-rgb), 0.1)  50%,
               transparent 70%) !important;
-            animation: halo1 1.6s ease-in-out infinite;
+            animation: halo1Light 1.6s ease-in-out infinite !important;
           }
           :not(.dark) .stb-halo2 {
-            background: radial-gradient(circle at 50% 50%,
-              rgba(var(--primary-rgb), 0.1)  0%,
-              rgba(var(--primary-rgb), 0.03) 50%,
+            background: radial-gradient(circle at 50% 65%,
+              rgba(var(--primary-rgb), 0.18) 0%,
+              rgba(var(--primary-rgb), 0.05) 50%,
               transparent 70%) !important;
-            animation: halo2 1.6s ease-in-out infinite;
+            animation: halo2Light 1.6s ease-in-out infinite !important;
           }
-          /* No halo3 in light mode — too faint to matter */
           :not(.dark) .stb-halo3 { display: none; }
 
-          /* ── Shared elements ── */
+          /* Shared halo base styles */
           .stb-core {
             position: absolute;
             inset: -4px;
@@ -436,12 +428,6 @@ const SidebarTrigger = React.forwardRef<React.ElementRef<typeof Button>, React.C
             position: relative;
             z-index: 10;
           }
-          /* In light mode make icon fully white so it reads as pure light source on the coloured bg */
-          :not(.dark) .sidebar-trigger-icon {
-            color: hsl(var(--primary));
-            filter: none !important;
-            animation: iconNuclear 1.6s ease-in-out infinite !important;
-          }
         `}</style>
 
         <div className="relative inline-flex items-center">
@@ -471,13 +457,14 @@ const SidebarTrigger = React.forwardRef<React.ElementRef<typeof Button>, React.C
               className="absolute left-full ml-6 z-50 flex items-center gap-1.5 pointer-events-none"
               style={{ animation: "sidebarHintFadeIn 0.4s ease 0.6s both" }}
             >
-              <div className="w-0 h-0 border-y-[5px] border-y-transparent border-r-[6px] border-r-white/10" />
+              <div className="w-0 h-0 border-y-[5px] border-y-transparent border-r-[6px]"
+                style={{ borderRightColor: "rgba(var(--primary-rgb), 0.2)" }} />
               <div
                 className="flex items-center gap-2 px-3 py-1.5 rounded-full backdrop-blur-md border"
                 style={{
                   background: "rgba(var(--primary-rgb), 0.08)",
-                  borderColor: "rgba(var(--primary-rgb), 0.25)",
-                  boxShadow: "0 0 24px rgba(var(--primary-rgb), 0.3)",
+                  borderColor: "rgba(var(--primary-rgb), 0.3)",
+                  boxShadow: "0 0 24px rgba(var(--primary-rgb), 0.35)",
                 }}
               >
                 <span className="relative flex h-1.5 w-1.5 shrink-0">
