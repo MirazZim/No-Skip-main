@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const QUOTES = [
   { text: "We are what we repeatedly do. Excellence, then, is not an act, but a habit.", author: "Aristotle" },
@@ -23,221 +24,201 @@ const SparklesIcon = () => (
 );
 
 export function HabitQuote() {
-  const [quote, setQuote] = useState<typeof QUOTES[number] | null>(null);
-  const [animating, setAnimating] = useState(false);
-  const [visible, setVisible] = useState(false);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const [current, setCurrent] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [direction, setDirection] = useState("next");
+  const [isPaused, setIsPaused] = useState(false);
+  const [dragOffset, setDragOffset] = useState(0);
 
-  useEffect(() => () => clearTimeout(timeoutRef.current), []);
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
+  const isDragging = useRef(false);
 
-  const pickRandom = () => {
-    if (animating) return;
-    setAnimating(true);
-    setVisible(false);
+  const navigate = useCallback((dir: "next" | "prev") => {
+    if (isAnimating) return;
+    setDirection(dir);
+    setIsAnimating(true);
+    setTimeout(() => {
+      setCurrent((prev) =>
+        dir === "next"
+          ? (prev + 1) % QUOTES.length
+          : (prev - 1 + QUOTES.length) % QUOTES.length
+      );
+      setIsAnimating(false);
+    }, 300);
+  }, [isAnimating]);
 
-    timeoutRef.current = setTimeout(() => {
-      let next: typeof QUOTES[number];
-      do {
-        next = QUOTES[Math.floor(Math.random() * QUOTES.length)];
-      } while (next === quote && QUOTES.length > 1);
-      setQuote(next);
-      setAnimating(false);
-      requestAnimationFrame(() => requestAnimationFrame(() => setVisible(true)));
-    }, 220);
-  };
+  const goTo = useCallback((index: number) => {
+    if (isAnimating || index === current) return;
+    setDirection(index > current ? "next" : "prev");
+    setIsAnimating(true);
+    setTimeout(() => {
+      setCurrent(index);
+      setIsAnimating(false);
+    }, 300);
+  }, [isAnimating, current]);
 
-  // Auto-show first quote on mount
+  // Auto-play every 6 seconds
   useEffect(() => {
-    const randomQuote = QUOTES[Math.floor(Math.random() * QUOTES.length)];
-    setQuote(randomQuote);
-    const t = setTimeout(() => setVisible(true), 80);
-    return () => clearTimeout(t);
+    if (isPaused) return;
+    const timer = setInterval(() => navigate("next"), 6000);
+    return () => clearInterval(timer);
+  }, [navigate, isPaused]);
+
+  // Touch swipe handlers
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+    isDragging.current = true;
+    setIsPaused(true);
+    setDragOffset(0);
   }, []);
 
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!isDragging.current || touchStartX.current === null || touchStartY.current === null) return;
+    const deltaX = e.touches[0].clientX - touchStartX.current;
+    const deltaY = e.touches[0].clientY - touchStartY.current;
+    if (Math.abs(deltaY) > Math.abs(deltaX)) {
+      isDragging.current = false;
+      setDragOffset(0);
+      return;
+    }
+    e.preventDefault();
+    setDragOffset(Math.max(-80, Math.min(80, deltaX * 0.6)));
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (!isDragging.current || touchStartX.current === null) return;
+    const deltaX = e.changedTouches[0].clientX - touchStartX.current;
+    setDragOffset(0);
+    isDragging.current = false;
+    touchStartX.current = null;
+    touchStartY.current = null;
+    if (Math.abs(deltaX) >= 40) navigate(deltaX < 0 ? "next" : "prev");
+    setIsPaused(false);
+  }, [navigate]);
+
+  const quote = QUOTES[current];
+
+  const slideStyle: React.CSSProperties = {
+    transition: isAnimating ? "opacity 0.3s ease, transform 0.3s ease" : "transform 0.15s ease",
+    opacity: isAnimating ? 0 : 1,
+    transform: isAnimating
+      ? `translateX(${direction === "next" ? "-12px" : "12px"})`
+      : `translateX(${dragOffset}px)`,
+    willChange: "transform",
+    touchAction: "pan-y",
+  };
+
   return (
-    <>
-      <style>{`
-        .hq-wrap {
-          position: relative;
-          border-radius: 16px;
-          border: 1px solid hsl(var(--border));
-          background: hsl(var(--card));
-          overflow: hidden;
-          transition: border-color 0.2s;
-        }
-        .hq-wrap:hover { border-color: hsl(var(--primary) / 0.3); }
+    <div
+      className="relative rounded-2xl border border-border/70 bg-card overflow-hidden shadow-sm select-none"
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* Background glow */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          backgroundImage: `
+            radial-gradient(ellipse at 90% 50%, hsl(var(--primary) / 0.04) 0%, transparent 60%),
+            radial-gradient(ellipse at 10% 50%, hsl(var(--muted) / 0.6) 0%, transparent 50%)
+          `,
+        }}
+      />
 
-        /* Subtle top-left glow accent */
-        .hq-glow {
-          position: absolute;
-          top: -40px; left: -40px;
-          width: 120px; height: 120px;
-          background: radial-gradient(circle, hsl(var(--primary) / 0.12) 0%, transparent 70%);
-          pointer-events: none;
-          border-radius: 50%;
-        }
-
-        .hq-inner {
-          position: relative;
-          display: flex;
-          align-items: stretch;
-          gap: 0;
-          min-height: 72px;
-        }
-
-        /* Left accent bar with icon */
-        .hq-accent {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          padding: 18px 14px;
-          gap: 8px;
-          flex-shrink: 0;
-          border-right: 1px solid hsl(var(--border));
-        }
-        .hq-icon {
-          width: 30px; height: 30px;
-          border-radius: 9px;
-          background: hsl(var(--primary) / 0.1);
-          color: hsl(var(--primary));
-          display: flex; align-items: center; justify-content: center;
-          flex-shrink: 0;
-        }
-        .hq-quotemark {
-          font-size: 28px;
-          line-height: 1;
-          color: hsl(var(--primary) / 0.2);
-          font-family: Georgia, serif;
-          font-weight: 700;
-          letter-spacing: -2px;
-          user-select: none;
-        }
-
-        /* Content */
-        .hq-content {
-          flex: 1;
-          padding: 16px 18px 14px;
-          display: flex;
-          flex-direction: column;
-          justify-content: space-between;
-          gap: 10px;
-          min-width: 0;
-        }
-
-        .hq-text {
-          font-size: 13.5px;
-          line-height: 1.6;
-          color: hsl(var(--foreground));
-          font-style: italic;
-          letter-spacing: -0.005em;
-          opacity: 0;
-          transform: translateY(6px);
-          transition: opacity 0.3s ease, transform 0.3s ease;
-        }
-        .hq-text--visible {
-          opacity: 1;
-          transform: translateY(0);
-        }
-
-        .hq-footer {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 10px;
-          opacity: 0;
-          transform: translateY(4px);
-          transition: opacity 0.3s ease 0.06s, transform 0.3s ease 0.06s;
-        }
-        .hq-footer--visible {
-          opacity: 1;
-          transform: translateY(0);
-        }
-
-        .hq-author {
-          font-size: 11px;
-          font-weight: 600;
-          color: hsl(var(--muted-foreground));
-          letter-spacing: 0.04em;
-          text-transform: uppercase;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-        .hq-author::before {
-          content: '— ';
-          opacity: 0.5;
-        }
-
-        .hq-btn {
-          display: flex;
-          align-items: center;
-          gap: 5px;
-          padding: 5px 10px;
-          border-radius: 20px;
-          border: 1px solid hsl(var(--border));
-          background: transparent;
-          color: hsl(var(--muted-foreground));
-          font-size: 11px;
-          font-weight: 600;
-          font-family: inherit;
-          cursor: pointer;
-          white-space: nowrap;
-          flex-shrink: 0;
-          letter-spacing: 0.02em;
-          transition: all 0.15s ease;
-        }
-        .hq-btn:hover {
-          border-color: hsl(var(--primary) / 0.4);
-          color: hsl(var(--primary));
-          background: hsl(var(--primary) / 0.05);
-        }
-        .hq-btn:active { transform: scale(0.95); }
-        .hq-btn:disabled { opacity: 0.4; cursor: default; }
-
-        /* Spinning sparkle on click */
-        .hq-btn-icon {
-          display: flex; align-items: center;
-          transition: transform 0.4s ease;
-        }
-        .hq-btn:not(:disabled):active .hq-btn-icon {
-          transform: rotate(180deg);
-        }
-      `}</style>
-
-      <div className="hq-wrap">
-        <div className="hq-glow" />
-        <div className="hq-inner">
-          {/* Left accent */}
-          <div className="hq-accent">
-            <div className="hq-icon">
-              <SparklesIcon />
-            </div>
-            <span className="hq-quotemark">"</span>
-          </div>
-
-          {/* Content */}
-          <div className="hq-content">
-            {quote && (
-              <>
-                <p className={`hq-text ${visible ? "hq-text--visible" : ""}`}>
-                  {quote.text}
-                </p>
-                <div className={`hq-footer ${visible ? "hq-footer--visible" : ""}`}>
-                  <span className="hq-author">{quote.author}</span>
-                  <button
-                    className="hq-btn"
-                    onClick={pickRandom}
-                    disabled={animating}
-                  >
-                    <span className="hq-btn-icon"><SparklesIcon /></span>
-                    Inspire me
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
+      {/* Header row */}
+      <div className="relative flex items-center gap-3 px-5 pt-4 pb-3 border-b border-border/40">
+        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">
+          Daily Habit
+        </span>
+        <div className="flex-1 h-px bg-gradient-to-r from-border/60 via-border/20 to-transparent" />
+        <div className="flex items-center justify-center h-6 w-6 rounded-lg bg-muted text-muted-foreground">
+          <SparklesIcon />
         </div>
       </div>
-    </>
+
+      {/* Quote body — slides on swipe, fades on navigate */}
+      <div className="relative px-5 py-4 flex gap-4 items-start cursor-grab active:cursor-grabbing" style={slideStyle}>
+        {/* Big decorative quote mark */}
+        <div
+          className="select-none shrink-0 font-black leading-none text-[72px] text-muted-foreground/10 -mt-3 -ml-1"
+          style={{ fontFamily: "Georgia, serif", lineHeight: 1 }}
+          aria-hidden
+        >
+          "
+        </div>
+
+        <blockquote className="flex-1 min-w-0">
+          <p
+            className="text-sm leading-relaxed text-foreground/85"
+            style={{ fontFamily: "Georgia, 'Times New Roman', serif", fontStyle: "italic" }}
+          >
+            {quote.text}
+          </p>
+          <footer className="mt-3 flex items-center gap-2">
+            <div className="h-px w-4 bg-border" />
+            <span className="text-[11px] font-bold tracking-wide text-muted-foreground uppercase">
+              {quote.author}
+            </span>
+          </footer>
+        </blockquote>
+      </div>
+
+      {/* Bottom controls — identical to MedievalQuote */}
+      <div className="px-5 pb-4 flex items-center justify-between gap-3">
+        {/* Dot indicators */}
+        <div className="flex items-center gap-1.5 flex-wrap max-w-[60%]">
+          {QUOTES.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => goTo(i)}
+              className="rounded-full transition-all duration-300 focus:outline-none"
+              style={{
+                width: i === current ? "20px" : "6px",
+                height: "6px",
+                background: i === current ? "hsl(var(--primary))" : "hsl(var(--border))",
+                opacity: i === current ? 1 : 0.5,
+              }}
+              aria-label={`Go to quote ${i + 1}`}
+            />
+          ))}
+        </div>
+
+        {/* Prev / Next buttons */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          <button
+            onClick={() => navigate("prev")}
+            className="flex items-center justify-center h-7 w-7 rounded-lg bg-muted hover:bg-muted/80 transition-colors focus:outline-none"
+            aria-label="Previous quote"
+          >
+            <ChevronLeft className="h-3.5 w-3.5 text-muted-foreground" />
+          </button>
+          <button
+            onClick={() => navigate("next")}
+            className="flex items-center justify-center h-7 w-7 rounded-lg bg-muted hover:bg-muted/80 transition-colors focus:outline-none"
+            aria-label="Next quote"
+          >
+            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+          </button>
+        </div>
+      </div>
+
+      {/* Ghost sparkle icon */}
+      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" aria-hidden>
+        <svg
+          width="88" height="88" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+          style={{ opacity: 0.03 }}
+        >
+          <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5z"/>
+          <path d="M5 3l.75 2.25L8 6l-2.25.75L5 9l-.75-2.25L2 6l2.25-.75z" opacity="0.6"/>
+          <path d="M19 15l.75 2.25L22 18l-2.25.75L19 21l-.75-2.25L16 18l2.25-.75z" opacity="0.6"/>
+        </svg>
+      </div>
+    </div>
   );
 }
