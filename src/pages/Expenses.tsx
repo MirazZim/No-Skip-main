@@ -72,7 +72,7 @@ export default function Expenses() {
 
   return (
     <AppLayout>
-      <div className="space-y-5 pb-32 sm:pb-24" style={{ animation: "expIn 0.3s ease both" }}>
+      <div className="space-y-5 pb-32 sm:pb-24 w-full overflow-x-hidden" style={{ animation: "expIn 0.3s ease both" }}>
 
         {/* ── Header ───────────────────────────────────────────────────── */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -87,7 +87,8 @@ export default function Expenses() {
             visually grouped but distinct from the budget controls.
           */}
           {/* flex-nowrap keeps all three on one row on every screen size */}
-          <div className="flex items-center gap-2 flex-nowrap min-w-0">
+          <div className="header-actions flex items-center gap-1.5 sm:gap-2 flex-nowrap min-w-0 max-w-full overflow-hidden">
+
             <BudgetManager budgets={allBudgets} expenses={allExpenses} month={month} />
 
             {/* Divider between budget controls and income */}
@@ -275,19 +276,40 @@ export default function Expenses() {
       )}
 
       <style>{`
-        @keyframes expIn {
-          from { opacity: 0; transform: translateY(10px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes pillIn {
-          from { transform: translateX(-50%) scaleX(0); opacity: 0; }
-          to   { transform: translateX(-50%) scaleX(1); opacity: 1; }
-        }
-        @keyframes fabIn {
-          from { opacity: 0; transform: scale(0.8) translateY(8px); }
-          to   { opacity: 1; transform: scale(1) translateY(0); }
-        }
-      `}</style>
+  @keyframes expIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pillIn {
+    from { transform: translateX(-50%) scaleX(0); opacity: 0; }
+    to   { transform: translateX(-50%) scaleX(1); opacity: 1; }
+  }
+  @keyframes fabIn {
+    from { opacity: 0; transform: scale(0.8) translateY(8px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  html, body {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
+  /* ── Shrink header action buttons on mobile ── */
+  @media (max-width: 639px) {
+    .header-actions button,
+    .header-actions [role="button"] {
+      height: 32px !important;
+      padding-left: 10px !important;
+      padding-right: 10px !important;
+      font-size: 11px !important;
+      border-radius: 12px !important;
+    }
+    .header-actions svg {
+      width: 13px !important;
+      height: 13px !important;
+    }
+  }
+`}</style>
     </AppLayout>
   );
 }
