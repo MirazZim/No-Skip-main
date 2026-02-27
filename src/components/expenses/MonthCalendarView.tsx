@@ -1,27 +1,24 @@
 import { useMemo } from "react";
 import {
-  startOfMonth,
-  endOfMonth,
-  eachDayOfInterval,
-  format,
-  getDay,
-  isToday,
-  isFuture,
+  startOfMonth, endOfMonth, eachDayOfInterval,
+  format, getDay, isToday, isFuture,
 } from "date-fns";
 import { Expense, CATEGORY_COLORS, type ExpenseCategory } from "@/hooks/useExpenses";
 import { useCustomCategories } from "@/hooks/useCustomCategories";
 import { useCurrency } from "@/hooks/useCurrency";
+import { MonthPicker } from "@/components/expenses/MonthPicker";
 import { cn } from "@/lib/utils";
 
 interface Props {
   expenses: Expense[];
   month: Date;
+  onMonthChange: (month: Date) => void;
   onDayClick?: (date: string) => void;
 }
 
 const WEEKDAYS = ["M", "T", "W", "T", "F", "S", "S"];
 
-export function MonthCalendarView({ expenses, month, onDayClick }: Props) {
+export function MonthCalendarView({ expenses, month, onMonthChange, onDayClick }: Props) {
   const { formatAmount } = useCurrency();
   const { data: customCategories = [] } = useCustomCategories();
 
@@ -62,7 +59,8 @@ export function MonthCalendarView({ expenses, month, onDayClick }: Props) {
 
   return (
     <div className="rounded-2xl border border-border/60 bg-card shadow-sm overflow-hidden">
-      {/* Header */}
+
+      {/* ── Header with MonthPicker ── */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-border/50">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
@@ -72,16 +70,23 @@ export function MonthCalendarView({ expenses, month, onDayClick }: Props) {
             {format(month, "MMMM yyyy")}
           </p>
         </div>
-        <div className="flex items-center gap-1.5">
-          <span className="text-[10px] text-muted-foreground">Low</span>
-          {[0.15, 0.35, 0.55, 0.75, 1].map((op, i) => (
-            <div
-              key={i}
-              className="h-3 w-3 rounded-sm"
-              style={{ backgroundColor: `hsl(var(--primary) / ${op})` }}
-            />
-          ))}
-          <span className="text-[10px] text-muted-foreground">High</span>
+
+        <div className="flex items-center gap-3">
+          {/* Heat map legend */}
+          <div className="hidden sm:flex items-center gap-1.5">
+            <span className="text-[10px] text-muted-foreground">Low</span>
+            {[0.15, 0.35, 0.55, 0.75, 1].map((op, i) => (
+              <div
+                key={i}
+                className="h-3 w-3 rounded-sm"
+                style={{ backgroundColor: `hsl(var(--primary) / ${op})` }}
+              />
+            ))}
+            <span className="text-[10px] text-muted-foreground">High</span>
+          </div>
+
+          {/* Month picker */}
+          <MonthPicker month={month} onChange={onMonthChange} />
         </div>
       </div>
 

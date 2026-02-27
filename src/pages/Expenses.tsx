@@ -98,8 +98,6 @@ export default function Expenses() {
               defaultDate={addDialogDate}
               onDateUsed={() => setAddDialogDate(undefined)}
             />
-
-            <MonthPicker month={month} onChange={setMonth} />
           </div>
         </div>
 
@@ -141,8 +139,8 @@ export default function Expenses() {
               <div className="flex flex-col items-center justify-center gap-3 rounded-3xl border border-dashed border-border/60 bg-card/30 py-16 text-center">
                 <div className="text-4xl">🧾</div>
                 <div className="space-y-1">
-                  <p className="text-sm font-bold tracking-tight">No transactions</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-lg font-bold tracking-tight">No transactions Today</p>
+                  <p className="text-lg text-muted-foreground">
                     Nothing logged for {format(new Date(txDate + "T12:00:00"), "EEEE, MMM d")}
                   </p>
                 </div>
@@ -159,8 +157,10 @@ export default function Expenses() {
             <MonthCalendarView
               expenses={allExpenses}
               month={month}
+              onMonthChange={setMonth}
               onDayClick={handleDayClick}
             />
+
           </div>
         )}
 
