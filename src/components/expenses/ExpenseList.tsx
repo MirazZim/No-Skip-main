@@ -198,7 +198,6 @@ export function ExpenseList({ expenses, title }: ExpenseListProps) {
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [openRowId, setOpenRowId] = useState<string | null>(null);
 
-  // Resolve color for both built-in and custom categories
   function resolveColor(category: string): string {
     return (
       CATEGORY_COLORS[category as ExpenseCategory] ??

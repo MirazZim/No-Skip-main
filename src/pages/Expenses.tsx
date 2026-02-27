@@ -13,6 +13,7 @@ import { MedievalQuote } from "@/components/expenses/MedievalQuote";
 import { DayDetailView } from "@/components/expenses/DayDetailView";
 import { useExpenses, usePrevMonthExpenses, useBudgets } from "@/hooks/useExpenses";
 import { useIncomes, usePrevMonthIncomes } from "@/hooks/useIncomes";
+import { IncomeList } from "@/components/expenses/IncomeList";
 import { Skeleton } from "@/components/ui/skeleton";
 import { List, CalendarDays, LayoutGrid, ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -38,6 +39,7 @@ export default function Expenses() {
   // Inside the component, alongside existing hooks:
   const { data: incomes } = useIncomes(month);
   const { data: prevIncomes } = usePrevMonthIncomes(month);
+  const [txType, setTxType] = useState<"expenses" | "income">("expenses");
 
   const allExpenses = expenses || [];
   const allPrev = prevExpenses || [];
@@ -47,6 +49,7 @@ export default function Expenses() {
 
 
   const txExpenses = allExpenses.filter((e) => e.date === txDate);
+  const txIncomes = allIncomes.filter((i) => i.date === txDate);
 
   const handleDayClick = (date: string) => setSelectedDay(date);
   const handleAddFromDay = (date: string) => { setAddDialogDate(date); setSelectedDay(null); };
@@ -133,22 +136,86 @@ export default function Expenses() {
         ══════════════════════════════════════════════════════════════ */}
         {activeTab === "transactions" && (
           <div className="space-y-4" style={{ animation: "expIn 0.28s ease both" }}>
-            {txExpenses.length > 0 ? (
-              <ExpenseList expenses={txExpenses} />
-            ) : (
-              <div className="flex flex-col items-center justify-center gap-3 rounded-3xl border border-dashed border-border/60 bg-card/30 py-16 text-center">
-                <div className="text-4xl">🧾</div>
-                <div className="space-y-1">
-                  <p className="text-lg font-bold tracking-tight">No transactions Today</p>
-                  <p className="text-lg text-muted-foreground">
-                    Nothing logged for {format(new Date(txDate + "T12:00:00"), "EEEE, MMM d")}
-                  </p>
+
+            {/* Inner type toggle */}
+            <div className="flex gap-1 rounded-2xl bg-muted/50 border border-border/40 p-1">
+              <button
+                onClick={() => setTxType("expenses")}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all duration-200",
+                  txType === "expenses"
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <span>💸</span>
+                <span>Expenses</span>
+                {txExpenses.length > 0 && (
+                  <span className={cn(
+                    "text-[10px] tabular-nums px-1.5 py-0.5 rounded-full font-bold",
+                    txType === "expenses" ? "bg-muted text-foreground" : "bg-muted/60 text-muted-foreground"
+                  )}>
+                    {txExpenses.length}
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={() => setTxType("income")}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all duration-200",
+                  txType === "income"
+                    ? "bg-emerald-500 text-white shadow-sm shadow-emerald-500/30"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <span>💰</span>
+                <span>Income</span>
+                {txIncomes.length > 0 && (
+                  <span className={cn(
+                    "text-[10px] tabular-nums px-1.5 py-0.5 rounded-full font-bold",
+                    txType === "income" ? "bg-white/20 text-white" : "bg-muted/60 text-muted-foreground"
+                  )}>
+                    {txIncomes.length}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {/* Expenses */}
+            {txType === "expenses" && (
+              txExpenses.length > 0 ? (
+                <ExpenseList expenses={txExpenses} />
+              ) : (
+                <div className="flex flex-col items-center justify-center gap-3 rounded-3xl border border-dashed border-border/60 bg-card/30 py-16 text-center">
+                  <div className="text-4xl">🧾</div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-bold tracking-tight">No expenses today</p>
+                    <p className="text-xs text-muted-foreground">
+                      Nothing logged for {format(new Date(txDate + "T12:00:00"), "EEEE, MMM d")}
+                    </p>
+                  </div>
                 </div>
-              </div>
+              )
+            )}
+
+            {/* Income */}
+            {txType === "income" && (
+              txIncomes.length > 0 ? (
+                <IncomeList incomes={txIncomes} />
+              ) : (
+                <div className="flex flex-col items-center justify-center gap-3 rounded-3xl border border-dashed border-border/60 bg-card/30 py-16 text-center">
+                  <div className="text-4xl">💰</div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-bold tracking-tight">No income today</p>
+                    <p className="text-xs text-muted-foreground">
+                      Tap Income in the header to log some
+                    </p>
+                  </div>
+                </div>
+              )
             )}
           </div>
         )}
-
         {/* ══════════════════════════════════════════════════════════════
             TAB: CALENDAR
         ══════════════════════════════════════════════════════════════ */}
@@ -160,7 +227,6 @@ export default function Expenses() {
               onMonthChange={setMonth}
               onDayClick={handleDayClick}
             />
-
           </div>
         )}
 
