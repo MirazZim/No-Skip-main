@@ -4,7 +4,11 @@ import { AppLayout } from "@/components/AppLayout";
 import { MonthPicker } from "@/components/expenses/MonthPicker";
 import { AddExpenseDialog } from "@/components/expenses/AddExpenseDialog";
 import { AddIncomeDialog } from "@/components/expenses/AddIncomeDialog";
+import { EditExpenseDialog } from "@/components/expenses/EditExpenseDialog";
+import { EditIncomeDialog } from "@/components/expenses/EditIncomeDialog";
 import { ExpenseList } from "@/components/expenses/ExpenseList";
+import type { Expense } from "@/hooks/useExpenses";
+import type { Income } from "@/hooks/useIncomes";
 import { ExpenseSummaryCards } from "@/components/expenses/ExpenseSummaryCards";
 import { ExpenseCharts } from "@/components/expenses/ExpenseCharts";
 import { BudgetManager } from "@/components/expenses/BudgetManager";
@@ -33,6 +37,8 @@ export default function Expenses() {
   const [addIncomeDialogDate, setAddIncomeDialogDate] = useState<string | undefined>();
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [txDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [editingIncome, setEditingIncome] = useState<Income | null>(null);
 
   const { data: expenses, isLoading } = useExpenses(month);
   const { data: prevExpenses } = usePrevMonthExpenses(month);
@@ -56,6 +62,8 @@ export default function Expenses() {
   const handleAddFromDay = (date: string) => { setAddDialogDate(date); };
   const handleAddIncomeFromDay = (date: string) => { setAddIncomeDialogDate(date); };
   const switchTab = (tab: Tab) => { setActiveTab(tab); setSelectedDay(null); };
+  const handleEditExpense = (expense: Expense) => setEditingExpense(expense);
+  const handleEditIncome = (income: Income) => setEditingIncome(income);
 
   /* ── Skeleton ──────────────────────────────────────────────────────── */
   if (isLoading) return (
@@ -254,6 +262,8 @@ export default function Expenses() {
               onBack={() => setSelectedDay(null)}
               onAddExpense={handleAddFromDay}
               onAddIncome={handleAddIncomeFromDay}
+              onEditExpense={handleEditExpense}
+              onEditIncome={handleEditIncome}
             />
           </div>
         )}
@@ -298,6 +308,16 @@ export default function Expenses() {
           <AddIncomeDialog
             defaultDate={addIncomeDialogDate}
             onDateUsed={() => setAddIncomeDialogDate(undefined)}
+          />
+          <EditExpenseDialog
+            expense={editingExpense}
+            open={!!editingExpense}
+            onOpenChange={(open) => !open && setEditingExpense(null)}
+          />
+          <EditIncomeDialog
+            income={editingIncome}
+            open={!!editingIncome}
+            onOpenChange={(open) => !open && setEditingIncome(null)}
           />
         </>
       )}
