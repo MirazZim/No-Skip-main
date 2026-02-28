@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { ArrowLeft, Plus } from "lucide-react";
+import { ArrowLeft, Plus,Pencil,Trash2 } from "lucide-react";
 import { Expense, CATEGORY_COLORS, type ExpenseCategory } from "@/hooks/useExpenses";
 import { Income, INCOME_SOURCE_COLORS, type IncomeSource } from "@/hooks/useIncomes";
 import { useCurrency } from "@/hooks/useCurrency";
@@ -274,14 +274,7 @@ export function DayDetailView({ date, expenses, incomes, onBack, onAddExpense, o
                             <p className="text-xs text-muted-foreground truncate mt-0.5">{inc.note}</p>
                           )}
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                          onClick={() => setEditingIncome(inc)}
-                        >
-                          <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
-                        </Button>
+            
                         <Button
                           variant="ghost"
                           size="icon"
