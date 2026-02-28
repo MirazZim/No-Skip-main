@@ -171,11 +171,11 @@ export function AddIncomeDialog({
         }
     }, [income, open, form]);
 
-    // defaultDate trigger (add mode) - only set date, don't auto-open
+    // defaultDate trigger (add mode) - auto-open when date is provided
     useEffect(() => {
         if (defaultDate && !isEditMode) {
             form.setValue("date", new Date(defaultDate + "T00:00:00"));
-            // Don't auto-open, just set the date for when user manually opens
+            setInternalOpen(true); // Auto-open the dialog
             onDateUsed?.();
         }
     }, [defaultDate, form, onDateUsed, isEditMode]);

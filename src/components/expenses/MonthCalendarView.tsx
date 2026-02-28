@@ -4,6 +4,7 @@ import {
   format, getDay, isToday, isFuture,
 } from "date-fns";
 import { Expense, CATEGORY_COLORS, type ExpenseCategory } from "@/hooks/useExpenses";
+import { Income } from "@/hooks/useIncomes";
 import { useCustomCategories } from "@/hooks/useCustomCategories";
 import { useCurrency } from "@/hooks/useCurrency";
 import { MonthPicker } from "@/components/expenses/MonthPicker";
@@ -11,6 +12,7 @@ import { cn } from "@/lib/utils";
 
 interface Props {
   expenses: Expense[];
+  incomes: Income[];
   month: Date;
   onMonthChange: (month: Date) => void;
   onDayClick?: (date: string) => void;
@@ -18,7 +20,7 @@ interface Props {
 
 const WEEKDAYS = ["M", "T", "W", "T", "F", "S", "S"];
 
-export function MonthCalendarView({ expenses, month, onMonthChange, onDayClick }: Props) {
+export function MonthCalendarView({ expenses, incomes, month, onMonthChange, onDayClick }: Props) {
   const { formatAmount } = useCurrency();
   const { data: customCategories = [] } = useCustomCategories();
 
@@ -30,22 +32,27 @@ export function MonthCalendarView({ expenses, month, onMonthChange, onDayClick }
     );
   }
 
-  const { days, leadingBlanks, dayExpenseMap } = useMemo(() => {
+  const { days, leadingBlanks, dayExpenseMap, dayIncomeMap } = useMemo(() => {
     const start = startOfMonth(month);
     const end = endOfMonth(month);
     const allDays = eachDayOfInterval({ start, end });
     const firstDow = (getDay(start) + 6) % 7;
 
-    const map: Record<string, { total: number; categories: Record<string, number> }> = {};
+    const expenseMap: Record<string, { total: number; categories: Record<string, number> }> = {};
     expenses.forEach((e) => {
-      if (!map[e.date]) map[e.date] = { total: 0, categories: {} };
-      map[e.date].total += e.amount;
-      map[e.date].categories[e.category] =
-        (map[e.date].categories[e.category] || 0) + e.amount;
+      if (!expenseMap[e.date]) expenseMap[e.date] = { total: 0, categories: {} };
+      expenseMap[e.date].total += e.amount;
+      expenseMap[e.date].categories[e.category] =
+        (expenseMap[e.date].categories[e.category] || 0) + e.amount;
     });
 
-    return { days: allDays, leadingBlanks: firstDow, dayExpenseMap: map };
-  }, [expenses, month]);
+    const incomeMap: Record<string, number> = {};
+    incomes.forEach((i) => {
+      incomeMap[i.date] = (incomeMap[i.date] || 0) + i.amount;
+    });
+
+    return { days: allDays, leadingBlanks: firstDow, dayExpenseMap: expenseMap, dayIncomeMap: incomeMap };
+  }, [expenses, incomes, month]);
 
   const maxDayTotal = useMemo(() => {
     return Math.max(1, ...Object.values(dayExpenseMap).map((d) => d.total));
@@ -112,6 +119,7 @@ export function MonthCalendarView({ expenses, month, onMonthChange, onDayClick }
           {days.map((day, idx) => {
             const dateStr = format(day, "yyyy-MM-dd");
             const data = dayExpenseMap[dateStr];
+            const incomeAmount = dayIncomeMap[dateStr];
             const today = isToday(day);
             const future = isFuture(day);
             const intensity = data ? Math.min(data.total / maxDayTotal, 1) : 0;
@@ -195,11 +203,23 @@ export function MonthCalendarView({ expenses, month, onMonthChange, onDayClick }
                   <div className={cn("mt-1.5 h-[3px] w-4 rounded-full", today ? "bg-background/20" : "bg-border/40")} />
                 ) : null}
 
+                {/* Income indicator - small green dot in top-right corner */}
+                {incomeAmount && !future && (
+                  <div 
+                    className={cn(
+                      "absolute top-1 right-1 h-1.5 w-1.5 rounded-full",
+                      today ? "bg-background/60" : "bg-emerald-500"
+                    )}
+                    title={`Income: ${formatAmount(incomeAmount)}`}
+                  />
+                )}
+
                 {/* Hover tooltip */}
-                {data && !future && (
+                {(data || incomeAmount) && !future && (
                   <div className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-100">
                     <div className="whitespace-nowrap rounded-lg border border-border/60 bg-popover px-2.5 py-1.5 shadow-lg">
-                      <p className="text-[11px] font-bold text-foreground">{formatAmount(data.total)}</p>
+                      {data && <p className="text-[11px] font-bold text-foreground">{formatAmount(data.total)}</p>}
+                      {incomeAmount && <p className="text-[11px] font-bold text-emerald-600">+{formatAmount(incomeAmount)}</p>}
                       <p className="text-[10px] text-muted-foreground">{format(day, "MMM d")}</p>
                     </div>
                     <div className="mx-auto h-1.5 w-1.5 -mt-px rotate-45 border-b border-r border-border/60 bg-popover" />

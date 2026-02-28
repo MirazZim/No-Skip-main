@@ -53,7 +53,8 @@ export default function Expenses() {
   const txIncomes = allIncomes.filter((i) => i.date === txDate);
 
   const handleDayClick = (date: string) => setSelectedDay(date);
-  const handleAddFromDay = (date: string) => { setAddDialogDate(date); setSelectedDay(null); };
+  const handleAddFromDay = (date: string) => { setAddDialogDate(date); };
+  const handleAddIncomeFromDay = (date: string) => { setAddIncomeDialogDate(date); };
   const switchTab = (tab: Tab) => { setActiveTab(tab); setSelectedDay(null); };
 
   /* ── Skeleton ──────────────────────────────────────────────────────── */
@@ -99,7 +100,7 @@ export default function Expenses() {
             <div className="hidden sm:block h-5 w-px bg-border/60 shrink-0" />
 
             <AddIncomeDialog
-              defaultDate={addIncomeDialogDate}
+              defaultDate={activeTab === "transactions" ? addIncomeDialogDate : undefined}
               onDateUsed={() => setAddIncomeDialogDate(undefined)}
             />
           </div>
@@ -224,6 +225,7 @@ export default function Expenses() {
           <div style={{ animation: "expIn 0.28s ease both" }}>
             <MonthCalendarView
               expenses={allExpenses}
+              incomes={allIncomes}
               month={month}
               onMonthChange={setMonth}
               onDayClick={handleDayClick}
@@ -248,8 +250,10 @@ export default function Expenses() {
             <DayDetailView
               date={selectedDay}
               expenses={allExpenses}
+              incomes={allIncomes}
               onBack={() => setSelectedDay(null)}
               onAddExpense={handleAddFromDay}
+              onAddIncome={handleAddIncomeFromDay}
             />
           </div>
         )}
@@ -274,8 +278,8 @@ export default function Expenses() {
         )}
       </div>
 
-      {/* DESKTOP FAB — only on transactions tab */}
-      {activeTab === "transactions" && (
+      {/* DESKTOP FAB — only on transactions tab, not in day detail view */}
+      {activeTab === "transactions" && !selectedDay && (
         <div
           className="hidden sm:block fixed bottom-8 right-8 z-50"
           style={{ animation: "fabIn 0.4s cubic-bezier(0.34,1.56,0.64,1) both", animationDelay: "200ms" }}
@@ -284,12 +288,18 @@ export default function Expenses() {
         </div>
       )}
 
-      {/* AddExpenseDialog for calendar tab (hidden FAB, only dialog) */}
-      {activeTab === "calendar" && (
-        <AddExpenseDialog
-          defaultDate={addDialogDate}
-          onDateUsed={() => setAddDialogDate(undefined)}
-        />
+      {/* Dialogs for calendar tab - only when in day detail view */}
+      {activeTab === "calendar" && selectedDay && (
+        <>
+          <AddExpenseDialog
+            defaultDate={addDialogDate}
+            onDateUsed={() => setAddDialogDate(undefined)}
+          />
+          <AddIncomeDialog
+            defaultDate={addIncomeDialogDate}
+            onDateUsed={() => setAddIncomeDialogDate(undefined)}
+          />
+        </>
       )}
 
       {/* ══════════════════════════════════════════════════════════════════
